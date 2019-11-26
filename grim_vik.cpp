@@ -114,7 +114,7 @@ MStatus Grim_VIK::compute( const MPlug& plug, MDataBlock& data )
 	double  pinBlend         = data.inputValue(iPinBlend).asDouble();
 	double  reverseBlend     = data.inputValue(iReverseBlend).asDouble();
 	double  orientTipBlend   = data.inputValue(iOrientTipBlend).asDouble();
-	double  flipOrientation  = data.inputValue(iFlipOrientation).asDouble();
+	bool  flipOrientation  = data.inputValue(iFlipOrientation).asBool();
 	double  upperLength      = data.inputValue(iUpperLength).asDouble();
 	double  lowerLength      = data.inputValue(iLowerLength).asDouble();
 	double  upperLengthBoost = data.inputValue(iUpperLengthBoost).asDouble();
