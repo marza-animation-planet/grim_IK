@@ -13,3 +13,8 @@
 .vscode
 build
 
+/excons.cache
+/.build
+/release
+/debug
+

@@ -97,7 +97,7 @@ inline MEulerRotation rotation_from_three_vectors(const MVector &a, const MVecto
 	double c1 = cos( x );
 	double z = atan2( s1*c.x - c1*b.x, c1*b.y - s1*c.y );
 
-	MEulerRotation result { x, y, z };
+	MEulerRotation result(x, y, z);
 	return( result );
 }
 
@@ -177,7 +177,7 @@ inline MMatrix matrix_from_two_vectors(const MVector &aim, const MVector &up, co
 	/*
 		This is assuming X-down, Y up
 	*/
-    double d_flip { flip ? -1.0 : 1.0 };
+    double d_flip = flip ? -1.0 : 1.0;
 
 	MVector cross = up ^ aim;
 	return( matrix_from_three_vectors(aim * d_flip, cross * d_flip, up * d_flip ) );
@@ -187,7 +187,7 @@ inline MMatrix matrix_from_two_vectors_and_point(const MVector &aim, const MVect
 	/*
 		This is assuming X-down, Y up
 	*/
-    double d_flip { flip ? -1.0 : 1.0 };
+    double d_flip = flip ? -1.0 : 1.0;
 
 	MVector cross = up ^ aim;
 	return( matrix_from_three_vectors_and_point(aim * d_flip, cross * d_flip, up * d_flip, point ) );

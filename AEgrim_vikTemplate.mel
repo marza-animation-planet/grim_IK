@@ -1,0 +1,23 @@
+
+global proc AEgrim_vikTemplate(string $nodeName)
+{
+   // AEswatchDisplay $nodeName;
+   editorTemplate -beginScrollLayout;
+      editorTemplate -addControl "flipOrientation";
+      editorTemplate -addControl "stretchBlend";
+      editorTemplate -addControl "fkIkBlend";
+      editorTemplate -addControl "pinBlend";
+      editorTemplate -addControl "reverseBlend";
+      editorTemplate -addControl "orientTipBlend";
+      editorTemplate -addControl "upperLength";
+      editorTemplate -addControl "lowerLength";
+      editorTemplate -addControl "upperLengthBoost";
+      editorTemplate -addControl "lowerLengthBoost";
+      editorTemplate -addControl "lengthBoost";
+      editorTemplate -addControl "softness";
+   editorTemplate -endLayout;
+
+   AEdependNodeTemplate $nodeName;
+   editorTemplate -addExtraControls -collapse 1;
+   editorTemplate -endScrollLayout;
+}

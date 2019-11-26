@@ -34,11 +34,7 @@ MObject Grim_VIK::oOutRotateZ;
 MObject Grim_VIK::oOutRotate;
 
 // ----------------------------------------------------------------------
-const struct {
-	// a value this small makes it nice and stable. Anything larger and you
-	// get a minute amount of drift at the tip
-	double MIN_SOFTNESS = 0.00000001;
-} IK {}; // need to force the initializer on gcc
+static double MIN_SOFTNESS = 0.00000001;
 
 // ----------------------------------------------------------------------
 Grim_VIK::Grim_VIK() {
@@ -76,8 +72,8 @@ inline void Grim_VIK::calculate_orientations( Pose &pose, const MPoint &pole_poi
 	upper_vector.normalize();
 	lower_vector.normalize();
 
-	MVector pole_vector { pole_point - pose.position[0] };
-	MPoint new_pole_point { pose.position[0] + ((pole_vector * goal_vector) / (goal_vector * goal_vector)) * goal_vector };
+	MVector pole_vector( pole_point - pose.position[0] );
+	MPoint new_pole_point( pose.position[0] + ((pole_vector * goal_vector) / (goal_vector * goal_vector)) * goal_vector );
 	pole_vector = pole_point - new_pole_point;
 	pole_vector.normalize();
 
@@ -94,15 +90,15 @@ MStatus Grim_VIK::compute( const MPlug& plug, MDataBlock& data )
 	MStatus stat;
 	MObject node = thisMObject();
 
-	int index {0};
+	int index = 0;
 
-	bool plug_check {
-		   plug == oOutTranslate || plug.parent() == oOutTranslate
-		|| plug == oOutRotate    || plug.parent() == oOutRotate
-		|| plug == oOutRotateX   || plug.parent() == oOutRotateX
-		|| plug == oOutRotateY   || plug.parent() == oOutRotateY
-		|| plug == oOutRotateZ   || plug.parent() == oOutRotateZ
-	};
+	bool plug_check = (
+		plug == oOutTranslate || plug.parent() == oOutTranslate ||
+		plug == oOutRotate    || plug.parent() == oOutRotate ||
+		plug == oOutRotateX   || plug.parent() == oOutRotateX ||
+		plug == oOutRotateY   || plug.parent() == oOutRotateY ||
+		plug == oOutRotateZ   || plug.parent() == oOutRotateZ
+	);
 
 	if( !plug_check ) {
 		// MGlobal::displayInfo("Grim_VIK::compute (bad plug)\n");
@@ -133,8 +129,8 @@ MStatus Grim_VIK::compute( const MPlug& plug, MDataBlock& data )
 	// bugfix: not necessary now-- removed to fix scaling
 	// softness *= scale_compensate;
 
-	if ( softness < IK.MIN_SOFTNESS ) {
-		softness = IK.MIN_SOFTNESS;
+	if ( softness < MIN_SOFTNESS ) {
+		softness = MIN_SOFTNESS;
 	}
 
 	// I'm using values from 0 to 100% to make it easier, so scale them down here
@@ -185,12 +181,12 @@ MStatus Grim_VIK::compute( const MPlug& plug, MDataBlock& data )
 		actual calculation
 	*/
 
-	MVector goal_vector      { goalPos - rootPos };
-	double chainLength       { realUpperLength + realLowerLength };
-	double distance          { goal_vector.length() * inverse_scale };
-	double soft_distance     { chainLength - softness };
-	double adjusted_distance { distance };
-	double scale             { 1.0 };
+	MVector goal_vector      = goalPos - rootPos;
+	double chainLength       = realUpperLength + realLowerLength;
+	double distance          = goal_vector.length() * inverse_scale;
+	double soft_distance     = chainLength - softness;
+	double adjusted_distance = distance;
+	double scale             = 1.0;
 	
 	goal_vector.normalize();
 
@@ -205,9 +201,9 @@ MStatus Grim_VIK::compute( const MPlug& plug, MDataBlock& data )
 		if (distance > soft_distance && pinBlend != 1.0) {
 			// this is the regular soft IK calculation
 			// multiply adjusted_distance by goal_vector to get new goal position
-			double k { softness * ( 1.0 - exp(-1.0*(distance-soft_distance)/softness) ) + soft_distance };
-			double smartRatio { k / chainLength };
-			double lenRatio { distance / chainLength };
+			double k = softness * ( 1.0 - exp(-1.0*(distance-soft_distance)/softness) ) + soft_distance;
+			double smartRatio = k / chainLength;
+			double lenRatio = distance / chainLength;
 			adjusted_distance = distance / lenRatio * smartRatio;
 
 			// stretchy softness calculation below
@@ -221,8 +217,8 @@ MStatus Grim_VIK::compute( const MPlug& plug, MDataBlock& data )
 		// pole vector point has to be projected down for the angle stuff to work
 		// new pole vector is from projected point through the pole point--
 		// parallel to the goal vector
-		MVector pole_vector { polePos - rootPos };
-		MPoint pole_point { rootPos + ((pole_vector * goal_vector) / (goal_vector * goal_vector)) * goal_vector };
+		MVector pole_vector = polePos - rootPos;
+		MPoint pole_point = rootPos + ((pole_vector * goal_vector) / (goal_vector * goal_vector)) * goal_vector;
 		pole_vector = polePos - pole_point;
 
 		// twist around the goal vector to move the pole pos before
@@ -231,14 +227,13 @@ MStatus Grim_VIK::compute( const MPlug& plug, MDataBlock& data )
 		polePos = pole_point + pole_vector;
 
 		pole_vector.normalize();
-		MVector side_vector { pole_vector ^ goal_vector };
+		MVector side_vector = pole_vector ^ goal_vector;
 		side_vector.normalize();
 
 		// angle off upper bone to goal vector
-		double root_cosine = {
+		double root_cosine =
 				( (realUpperLength * realUpperLength) + (adjusted_distance * adjusted_distance) -
-				(realLowerLength * realLowerLength) ) / (2.0 * realUpperLength * adjusted_distance)
-		};
+				(realLowerLength * realLowerLength) ) / (2.0 * realUpperLength * adjusted_distance);
 
 		// the clamp is important
 		double upper_angle = acos( clamp(root_cosine, -1.0, 1.0) );
@@ -263,7 +258,7 @@ MStatus Grim_VIK::compute( const MPlug& plug, MDataBlock& data )
 
 		// lower bone just aims at goal
 		// but it has to use the newly-calculated soft goal position!
-		MVector lower_bone_vector { (ik_pose.position[0] + (goal_vector * adjusted_distance)) - ik_pose.position[1] };
+		MVector lower_bone_vector = (ik_pose.position[0] + (goal_vector * adjusted_distance)) - ik_pose.position[1];
 		ik_pose.position[2] = ik_pose.position[1] + lower_bone_vector;
 		lower_bone_vector.normalize();
 
@@ -583,38 +578,37 @@ MStatus Grim_VIK::initialize()
 		nAttr.setUsesArrayDataBuilder(true);
 	CHECK_MSTATUS_AND_RETURN_IT( addAttribute(oOutRotate) );
 	
-	std::map<std::string, MObject *> all_inputs = {
-		{ "rootMatrix",       & iRootMatrix },
-		{ "goalMatrix",       & iGoalMatrix },
-		{ "poleMatrix",       & iPoleMatrix },
-		{ "fkMatrix",         & iFkMatrix },
-		{ "stretchBlend",     & iStretchBlend },
-		{ "fkIkBlend",        & iFkIkBlend },
-		{ "pinBlend",    & iPinBlend },
-		{ "reverseBlend",     & iReverseBlend },
-        { "orientTipBlend",   & iOrientTipBlend },
-		{ "flipOrientation",  & iFlipOrientation },
-		{ "upperLength",      & iUpperLength },
-		{ "lowerLength",      & iLowerLength },
-		{ "upperLengthBoost", & iUpperLengthBoost },
-		{ "lowerLengthBoost", & iLowerLengthBoost },
-		{ "lengthBoost",      & iLengthBoost },
-		{ "softness",         & iSoftness },
-		{ "twist",            & iTwist }
-	};
+	std::map<std::string, MObject *> all_inputs;
+	all_inputs["goalMatrix"] = & iGoalMatrix;
+	all_inputs["poleMatrix"] = & iPoleMatrix;
+	all_inputs["fkMatrix"] = & iFkMatrix;
+	all_inputs["stretchBlend"] = & iStretchBlend;
+	all_inputs["fkIkBlend"] = & iFkIkBlend;
+	all_inputs["pinBlend"] = & iPinBlend;
+	all_inputs["reverseBlend"] = & iReverseBlend;
+	all_inputs["orientTipBlend"] = & iOrientTipBlend;
+	all_inputs["flipOrientation"] = & iFlipOrientation;
+	all_inputs["upperLength"] = & iUpperLength;
+	all_inputs["lowerLength"] = & iLowerLength;
+	all_inputs["upperLengthBoost"] = & iUpperLengthBoost;
+	all_inputs["lowerLengthBoost"] = & iLowerLengthBoost;
+	all_inputs["lengthBoost"] = & iLengthBoost;
+	all_inputs["softness"] = & iSoftness;
+	all_inputs["twist"] = & iTwist;
 
-	std::map<std::string, MObject *> all_outputs = {
-		{ "outTranslate",     & oOutTranslate },
-		{ "outRotate",        & oOutRotate }
-	};
+	std::map<std::string, MObject *> all_outputs;
+	all_outputs["outTranslate"] = & oOutTranslate;
+	all_outputs["outRotate"] = & oOutRotate;
 
-	for (const auto &input_pair : all_inputs) {
-		for (const auto &output_pair : all_outputs) {
-			stat = attributeAffects(*input_pair.second, *output_pair.second);
+	for (std::map<std::string, MObject *>::iterator input_pair = all_inputs.begin();
+			input_pair != all_inputs.end(); ++input_pair) {
+		for (std::map<std::string, MObject *>::iterator output_pair = all_outputs.begin();
+				output_pair != all_outputs.end(); ++output_pair) {
+			stat = attributeAffects(*(input_pair->second), *(output_pair->second));
 			if (!stat) {
 				sprintf(msg, "attributeAffects: %s >> %s", 
-						(const char *)input_pair.first.c_str(),
-						(const char *)output_pair.first.c_str());
+						(const char *)input_pair->first.c_str(),
+						(const char *)output_pair->first.c_str());
 				stat.perror(msg); 
 				return stat;
 			}
@@ -623,33 +617,3 @@ MStatus Grim_VIK::initialize()
 
 	return MS::kSuccess;
 }
-
-// ----------------------------------------------------------------------
-void Grim_VIK::aeTemplate() {
-	const char *msg = R"(
-		global proc AEgrim_vikTemplate(string $nodeName) {
-			// AEswatchDisplay $nodeName;
-			editorTemplate -beginScrollLayout;
-                editorTemplate -addControl "flipOrientation";
-				editorTemplate -addControl "stretchBlend";
-				editorTemplate -addControl "fkIkBlend";
-				editorTemplate -addControl "pinBlend";
-				editorTemplate -addControl "reverseBlend";
-				editorTemplate -addControl "orientTipBlend";
-				editorTemplate -addControl "upperLength";
-				editorTemplate -addControl "lowerLength";
-				editorTemplate -addControl "upperLengthBoost";
-				editorTemplate -addControl "lowerLengthBoost";
-				editorTemplate -addControl "lengthBoost";
-				editorTemplate -addControl "softness";
-			editorTemplate -endLayout;
-
-			AEdependNodeTemplate $nodeName;
-			editorTemplate -addExtraControls -collapse 1;
-			editorTemplate -endScrollLayout;
-		}
-	)";
-
-	MGlobal::executeCommand(msg);
-}
-
